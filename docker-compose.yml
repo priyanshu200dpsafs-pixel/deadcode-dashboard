@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # The MongoDB Database
+  mongodb:
+    image: mongo:latest
+    container_name: deadcode_mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  # The DeadCode Dashboard API
+  deadcode_api:
+    build: .
+    # This tells docker-compose to create 3 separate identical containers!
+    deploy:
+      replicas: 3
+    environment:
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017/deadcode
+      - JWT_SECRET=super_secret_deadcode_key_2026
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  # The Nginx Load Balancer
+  nginx:
+    image: nginx:latest
+    container_name: deadcode_lb
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - deadcode_api
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
